@@ -1,0 +1,255 @@
+---
+title: "Datathon"
+author: "Zach Soriano"
+date: "2025-04-04"
+output:
+  pdf_document: default
+  html_document: default
+---
+# What is the most upvoted sentiment, topic, etc.?
+# Getting the DF in order
+```{r}
+getwd()
+reddits <- read.csv("reddit_data.csv")
+class(reddits)
+head(reddits)
+library(dplyr)
+library(ggplot2)
+
+
+## take a random sample of 100 reddit posts, all with selftexts (for analysis)
+new_reddit <- data.frame()
+reddits_with_selftext <- reddits |> filter(!is.na(selftext) & selftext != "")
+for(i in 1:100){
+  new_reddit <- rbind(new_reddit, reddits_with_selftext[sample(nrow(reddits_with_selftext), 1, TRUE),])
+}
+head(new_reddit)
+write.csv(new_reddit,"new_reddits.csv")
+
+## list of the classifications from code from the provided collab
+sentiment_results <- list(
+  list(label = 'NEGATIVE', score = 0.991672694683075),
+  list(label = 'POSITIVE', score = 0.9995336532592773),
+  list(label = 'NEGATIVE', score = 0.9988495111465454),
+  list(label = 'NEGATIVE', score = 0.9879534244537354),
+  list(label = 'POSITIVE', score = 0.7409587502479553),
+  list(label = 'NEGATIVE', score = 0.9991530179977417),
+  list(label = 'NEGATIVE', score = 0.9865169525146484),
+  list(label = 'NEGATIVE', score = 0.993101954460144),
+  list(label = 'NEGATIVE', score = 0.8550982475280762),
+  list(label = 'NEGATIVE', score = 0.9876377582550049),
+  list(label = 'POSITIVE', score = 0.9991506338119507),
+  list(label = 'POSITIVE', score = 0.6678336262702942),
+  list(label = 'NEGATIVE', score = 0.999110758304596),
+  list(label = 'NEGATIVE', score = 0.9954105019569397),
+  list(label = 'POSITIVE', score = 0.9618330001831055),
+  list(label = 'NEGATIVE', score = 0.9671931266784668),
+  list(label = 'POSITIVE', score = 0.998610258102417),
+  list(label = 'POSITIVE', score = 0.9994686245918274),
+  list(label = 'NEGATIVE', score = 0.991353452205658),
+  list(label = 'POSITIVE', score = 0.9970383644104004),
+  list(label = 'NEGATIVE', score = 0.9997976422309875),
+  list(label = 'NEGATIVE', score = 0.9954143762588501),
+  list(label = 'NEGATIVE', score = 0.9958037734031677),
+  list(label = 'POSITIVE', score = 0.9998515844345093),
+  list(label = 'POSITIVE', score = 0.9667043685913086),
+  list(label = 'NEGATIVE', score = 0.5973817110061646),
+  list(label = 'NEGATIVE', score = 0.9995996356010437),
+  list(label = 'POSITIVE', score = 0.9760367274284363),
+  list(label = 'NEGATIVE', score = 0.9706246256828308),
+  list(label = 'POSITIVE', score = 0.999681830406189),
+  list(label = 'NEGATIVE', score = 0.9904476404190063),
+  list(label = 'POSITIVE', score = 0.9987385869026184),
+  list(label = 'NEGATIVE', score = 0.5797485709190369),
+  list(label = 'POSITIVE', score = 0.9978482723236084),
+  list(label = 'NEGATIVE', score = 0.9884042739868164),
+  list(label = 'POSITIVE', score = 0.6507644653320312),
+  list(label = 'NEGATIVE', score = 0.9821375608444214),
+  list(label = 'POSITIVE', score = 0.9933657050132751),
+  list(label = 'NEGATIVE', score = 0.9993749260902405),
+  list(label = 'NEGATIVE', score = 0.9992252588272095),
+  list(label = 'POSITIVE', score = 0.9979986548423767),
+  list(label = 'POSITIVE', score = 0.9997203946113586),
+  list(label = 'POSITIVE', score = 0.9988318085670471),
+  list(label = 'POSITIVE', score = 0.9833642244338989),
+  list(label = 'POSITIVE', score = 0.9333803057670593),
+  list(label = 'POSITIVE', score = 0.6327430009841919),
+  list(label = 'NEGATIVE', score = 0.9877262711524963),
+  list(label = 'NEGATIVE', score = 0.9944887161254883),
+  list(label = 'NEGATIVE', score = 0.9947329759597778),
+  list(label = 'POSITIVE', score = 0.9995995163917542),
+  list(label = 'NEGATIVE', score = 0.8247957229614258),
+  list(label = 'POSITIVE', score = 0.9994262456893921),
+  list(label = 'POSITIVE', score = 0.9960978031158447),
+  list(label = 'NEGATIVE', score = 0.9995328187942505),
+  list(label = 'NEGATIVE', score = 0.9989587068557739),
+  list(label = 'NEGATIVE', score = 0.8087736964225769),
+  list(label = 'NEGATIVE', score = 0.6157820224761963),
+  list(label = 'NEGATIVE', score = 0.9884861707687378),
+  list(label = 'POSITIVE', score = 0.9436124563217163),
+  list(label = 'NEGATIVE', score = 0.9836239814758301),
+  list(label = 'POSITIVE', score = 0.9994138479232788),
+  list(label = 'POSITIVE', score = 0.9333803057670593),
+  list(label = 'POSITIVE', score = 0.999813973903656),
+  list(label = 'POSITIVE', score = 0.9987710118293762),
+  list(label = 'POSITIVE', score = 0.9946255087852478),
+  list(label = 'NEGATIVE', score = 0.9582034945487976),
+  list(label = 'NEGATIVE', score = 0.9799867272377014),
+  list(label = 'NEGATIVE', score = 0.9613839983940125),
+  list(label = 'NEGATIVE', score = 0.9996870756149292),
+  list(label = 'NEGATIVE', score = 0.9959245920181274),
+  list(label = 'NEGATIVE', score = 0.9990758895874023),
+  list(label = 'NEGATIVE', score = 0.8058558702468872),
+  list(label = 'NEGATIVE', score = 0.7189993262290955),
+  list(label = 'NEGATIVE', score = 0.9952793121337891),
+  list(label = 'POSITIVE', score = 0.9993001222610474),
+  list(label = 'NEGATIVE', score = 0.9853032827377319),
+  list(label = 'NEGATIVE', score = 0.9591962099075317),
+  list(label = 'NEGATIVE', score = 0.9853107929229736),
+  list(label = 'NEGATIVE', score = 0.9574699997901917),
+  list(label = 'NEGATIVE', score = 0.9793717265129089),
+  list(label = 'POSITIVE', score = 0.9953694939613342),
+  list(label = 'NEGATIVE', score = 0.9967470169067383),
+  list(label = 'NEGATIVE', score = 0.991675853729248),
+  list(label = 'NEGATIVE', score = 0.9985107779502869),
+  list(label = 'NEGATIVE', score = 0.9976449608802795),
+  list(label = 'NEGATIVE', score = 0.9296443338802795),
+  list(label = 'NEGATIVE', score = 0.9995303153991699),
+  list(label = 'NEGATIVE', score = 0.9996665716171265),
+  list(label = 'NEGATIVE', score = 0.8002933859825134),
+  list(label = 'POSITIVE', score = 0.9972997307777405),
+  list(label = 'NEGATIVE', score = 0.998813271522522),
+  list(label = 'POSITIVE', score = 0.911045491695404),
+  list(label = 'NEGATIVE', score = 0.9752082824707031),
+  list(label = 'NEGATIVE', score = 0.9917294383049011),
+  list(label = 'NEGATIVE', score = 0.9914217591285706),
+  list(label = 'NEGATIVE', score = 0.9954143762588501),
+  list(label = 'NEGATIVE', score = 0.994091808795929),
+  list(label = 'POSITIVE', score = 0.7074794769287109),
+  list(label = 'POSITIVE', score = 0.8236691951751709),
+  list(label = 'NEGATIVE', score = 0.9984536170959473)
+)
+
+sentiment_vector_single_word <- sapply(sentiment_results, function(result) {
+  if (!is.null(result)) {
+    return(result$label)
+  } else {
+    return(NA)
+  }
+})
+
+print(sentiment_vector_single_word)
+length(sentiment_vector_single_word)
+```
+
+# what post classifications have the most upvotes? 
+# adding classifications to DF
+```{r}
+for(i in 1:100){
+  new_reddit$classification[i] = sentiment_vector_single_word[i]
+}
+# summarise mean and median upvotes for positive/negative posts
+new_reddit |> group_by(classification) |> summarise(med_upvotes = median(ups), mean_upvotes = mean(ups))
+
+# plot to show amount of outliers, for 'viral' posts
+boxplot(new_reddit$ups ~ new_reddit$classification, xlab = "Classification", ylab = "Upvotes")
+
+
+```
+Response: Out of the 100 Reddit posts sampled, positively classified posts are clearly more likely to have more upvotes than negatively classified posts, with positively classified posts receiving mean upvote count of 6,400 upvotes and a median upvote count of 2,575 upvotes, compared to negatively classified posts which only received a mean and median upvote count of 2,625 and 1,480 respectively. Another factor which I would informally introduce as something I would call a "viral" factor, the likelihood that a posts receives enough upvotes to be considered an outlier. Positively classified posts have 5 outliers, some reaching upwards of 40,000+ upvotes, whereas negative posts have fewer, and only reaching about 15,000 upvotes. 
+
+# What is the relationship between comments and upvotes?
+```{r}
+# assignment
+num_comments <- new_reddit$num_comments
+num_ups <- new_reddit$ups
+
+# create a linear regression, formula being upvotes predicted by 
+# number of comments
+line_reg_reddits <- lm(new_reddit$ups ~ new_reddit$num_comments)
+
+# plot upvotes predicted by comments
+plot(new_reddit$ups ~ new_reddit$num_comments, main = "Num of upvotes predicted by num of comments", ylab = "Number of upvotes", xlab = "Number of comments")
+abline(line_reg_reddits, col = "red", lwd = 2)
+
+# how much are these two variables correlated?
+r <- cor(x = num_comments, y = num_ups)
+r_squared <- r^2
+r
+r_squared
+```
+Response: From the 100 randomly sampled reddit posts, the relationship between the number of upvotes and the number of comments a post receives is positively correlated, meaning that generally the more comments a post receives the more likes it is likely to receive. However, these two variables share a correlation coefficient of just r = 0.404, and an r^2 value of just r^2 = .163, meaning that just 16% of the variation in the amount of upvotes a post receives is accounted for by the amount of comments a post receives. A general interpretation of this is that a post that receives a large amount of engagement in the comment section is more likely to have more upvotes, but because of the weak correlation between these two variables, we can assume that there are many more factors in which predict the amount of upvotes a post receives, rather than just looking at how many comments a post receives. 
+
+
+# Do positive/negative posts get more engagement?
+```{r}
+# add engagement score to the DF, defined by number of likes+comments
+df_with_engagement <- new_reddit |> mutate(engagement_score = ups + num_comments)
+
+# mean and median engagement scores, for positive/negative posts
+df_with_engagement |> group_by(classification) |> summarise(mean_engagement_score = mean(engagement_score), median_engagement_score = median(engagement_score))
+
+# save the scores for plotting
+score <- df_with_engagement$engagement_score
+classification <- df_with_engagement$classification
+
+# visualize the engagement score by positive/negative posts
+
+
+```
+Response: From the 100 randomly sampled reddit posts, positively classified posts boast much higher engagement scores than negatively classified posts. The mean and median scores for engagement posts that are positively classified are 6,630 and 2,743 respectively. Recall that engagement score is calculated with likes + comments. These greatly surpass the mean and median engagement scores of negatively classified posts, which were 2,907 and 1,652 respectively. A possible conclusion for this, if your goal was to make a post that receives a lot of upvotes and comments, is to make a post with positive content and messaged. 
+
+
+# Predicting the type of post that will receive the most engagement
+# using a classification (pos/neg) and cluster
+```{r}
+# Clusters to be defined as 
+# 0: ["finance", "current", "state"],
+# 1: ["politics", "concern", "disappointed"],
+# 2: ["travel", "future", "concern"],
+# 3: ["health", "sports", "downfall"],
+# 4: ["education", "remains", "seen"],
+# 5: ["technology", "disappointed", "future"],
+# 6: ["health", "new", "love"],
+# 7: ["environment", "disappointed", "remains"]
+
+
+# Cluster assignment, with the code provided in the collab. Each
+# element was fed into the assignment algorithm, and each element of
+# 'cluster_assignment' corresponds to the cluster of the same element in 'new_reddit'.
+
+cluster_assignment <- c(
+  6, 0, 5, 4, 2, 3, 7, 1, 0, 7, 1, 6, 4, 5, 2, 5, 6, 2, 6, 0,
+  3, 0, 7, 5, 5, 6, 1, 1, 6, 5, 5, 0, 3, 6, 6, 2, 0, 6, 1, 0,
+  6, 3, 4, 5, 2, 6, 6, 5, 3, 2, 0, 2, 4, 1, 2, 5, 1, 7, 7, 4,
+  0, 1, 1, 1, 5, 3, 0, 4, 2, 1, 0, 4, 2, 3, 0, 7, 4, 7, 4, 7,
+  7, 7, 3, 2, 1, 2, 4, 4, 5, 7, 3, 4, 3, 3, 7, 3, 3, 3, 4, 1
+)
+# add the cluster to the DF
+for(i in 1:100){
+  new_reddit$cluster[i] = cluster_assignment[i]
+}
+
+# from before, adding engagement score to the DF
+ups <- new_reddit$ups
+comments <- new_reddit$num_comments
+for(i in 1:100){
+  new_reddit$engagement_score[i] = comments[i] + ups[i]
+}
+
+# mean and median engagement scores for each cluster
+new_reddit |> group_by(cluster) |> summarise(mean_engagement_score = mean(engagement_score), median_engagement_score = median(engagement_score))
+
+# visualizing the engagement score by cluster
+boxplot(new_reddit$engagement_score ~ new_reddit$cluster, 
+        xlab = "Cluster", ylab = "Engagement Score", 
+        main = "Engagement Score by Cluster", ylim = c(0,10000))
+
+```
+Response: In order to very broadly predict which posts will have good engagement, we consider a few assumptions. The first assumption is that the algorithm correctly assigned the post to a cluster based on keywords in the post. Another is that the conclusion we made before about positively classified posts being more successful in terms of engagement compared to negative posts. Lastly we assume that the 100 randomly chosen posts are representative of posts with similar content in the entire dataset of reddit posts. Under all of these assumptions, we consider the following conclusion about which posts will have the most engagement. The clusters with the highest median engagement are clusters 0, 2, 4, and 7. Note that we consider the median engagement score because one post that receives a very unlikely amount of engagement (like the post in cluster 7 with almost 50,000 engagement score) will ruin the validity of the mean. Narrowing down the clusters to just 4, we can consider all of the topics in each of these clusters. The 12 topics are finance, current, state, travel, future, concern, education, remains, seen, environment, disappointed, and remains. Recall from earlier we concluded that posts with positive classifications are more likely to receive better engagement scores. Thus, if your goal was to make a post with the most engagement, we would conclude from our findings that a post that is overall written with a positive tone about one of the 12 topics listed above would be your best bet. Notice how some of the topics are inherently negative, so the classification of your post is likely correlated with your topic. For example, the successful negatively classified posts are likely about the negatively associated topics, like disappointed, or concern. All other "successful" topics would likely be written with a positive classification. 
+
+
+
+
+
+
